@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: ApiGateway
+  cloud:
+    gateway:
+      server:
+        webmvc:
+          routes:
+            - id: bank
+              uri: ${bank.service.url}
+              predicates:
+                - Path=/bank/**
+            - id: phonepe
+              uri: ${phonepe.service.url}
+              predicates:
+                - Path=/phonepe/**
+            - id: product
+              uri: ${product.service.url}
+              predicates:
+                - Path=/product/**
+            - id: order
+              uri: ${order.service.url}
+              predicates:
+                - Path=/cart/**
+
+server:
+  port: 9000
+
+# Each downstream service's own address, overridable with an env var (matches the PHONEPE_SERVICE_URL
+# convention OrderService already uses for its own Feign client).
+bank.service.url: ${BANK_SERVICE_URL:http://localhost:8080}
+phonepe.service.url: ${PHONEPE_SERVICE_URL:http://localhost:8081}
+product.service.url: ${PRODUCT_SERVICE_URL:http://localhost:8082}
+order.service.url: ${ORDER_SERVICE_URL:http://localhost:8083}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
