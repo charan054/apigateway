@@ -9,11 +9,12 @@ A Spring Cloud Gateway (WebMVC) instance that routes requests by path prefix to 
 | `/bank/**` | `bank.service.url` | Bankapplication |
 | `/phonepe/**` | `phonepe.service.url` | PhonepayService |
 | `/product/**` | `product.service.url` | ProductService |
+| `/category/**` | `product.service.url` | ProductService |
 | `/cart/**` | `order.service.url` | OrderService |
+| `/coupons/**` | `order.service.url` | OrderService |
+| `/wishlist/**` | `order.service.url` | OrderService |
 
 Defined in [`src/main/resources/application.yml`](src/main/resources/application.yml).
-
-**Known gap:** OrderService's `/coupons/**` and `/wishlist/**` endpoints and ProductService's `/category/**` endpoints have no route here yet — they were added directly to those services without updating this gateway. Call them on the service's own port (8083 / 8082) directly, or add matching route entries here, following the same pattern as the existing four.
 
 ## Running it
 

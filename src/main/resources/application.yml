@@ -18,10 +18,22 @@ spring:
               uri: ${product.service.url}
               predicates:
                 - Path=/product/**
+            - id: category
+              uri: ${product.service.url}
+              predicates:
+                - Path=/category/**
             - id: order
               uri: ${order.service.url}
               predicates:
                 - Path=/cart/**
+            - id: coupons
+              uri: ${order.service.url}
+              predicates:
+                - Path=/coupons/**
+            - id: wishlist
+              uri: ${order.service.url}
+              predicates:
+                - Path=/wishlist/**
 
 server:
   port: 9000
