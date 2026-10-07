@@ -12,6 +12,8 @@ $StackServices = @(
 
 function Select-StackServices([string[]]$Only) {
     if (-not $Only) { return $StackServices }
+    # `powershell -File script.ps1 -Only A,B` passes "A,B" as ONE string (only -Command parses it as an array).
+    $Only = @($Only | ForEach-Object { $_ -split "," } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
     $selected = @($StackServices | Where-Object { $Only -contains $_.Name })
     $unknown = @($Only | Where-Object { $name = $_; -not ($StackServices | Where-Object { $_.Name -eq $name }) })
     if ($unknown.Count -gt 0) {
