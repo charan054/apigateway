@@ -8,8 +8,10 @@
     service key is available) that OrderService's health board is green and that a CASH order can be placed and
     cancelled with the stock coming back exactly.
 
-    The order check places a real order for a throwaway phone number (default 9000000999) and cancels it again, so
-    it leaves one CANCELLED order row in the dev database. Use -SkipOrder to leave the database untouched.
+    The order check places a real order for a throwaway phone number and cancels it again, so it leaves one CANCELLED
+    order row in the dev database. The number is random on every run (override with -Phone): the shop's cash-on-delivery
+    risk guard blocks a phone number after a few cancelled cash orders, so one fixed number would make this check start
+    failing after a handful of runs. Use -SkipOrder to leave the database untouched.
 
     The service key is read, in order, from -ServiceKey, the INTERNAL_SERVICE_API_KEY environment variable, or
     OrderService\.env. It is only ever sent as a request header, never printed. Without one, the checks that need
@@ -21,7 +23,7 @@
 #>
 param(
     [string]$ServiceKey,
-    [string]$Phone = "9000000999",
+    [string]$Phone = ("9000" + (Get-Random -Minimum 100000 -Maximum 999999)),
     [switch]$SkipOrder
 )
 $ErrorActionPreference = "Stop"
