@@ -13,6 +13,8 @@ A Spring Cloud Gateway (WebMVC) instance that routes requests by path prefix to 
 | `/cart/**` | `order.service.url` | OrderService |
 | `/coupons/**` | `order.service.url` | OrderService |
 | `/wishlist/**` | `order.service.url` | OrderService |
+| `/addresses/**`, `/admin/**`, `/audit/**`, `/customer/**`, `/faq/**`, `/feedback/**`, `/giftcards/**`, `/gst/**`, `/loyalty/**`, `/ordernotes/**`, `/pincodes/**`, `/prefs/**`, `/questions/**`, `/referral/**`, `/savedcart/**`, `/storecredit/**`, `/subscriptions/**`, `/support/**`, `/waitlist/**` | `order.service.url` | OrderService |
+| `/uploads/**` | `product.service.url` | ProductService (uploaded product images) |
 
 Defined in [`src/main/resources/application.yml`](src/main/resources/application.yml).
 
