@@ -33,9 +33,12 @@ powershell -ExecutionPolicy Bypass -File dev-scripts\start-all.ps1              
 powershell -ExecutionPolicy Bypass -File dev-scripts\start-all.ps1 -Only OrderService -Restart   # replace one stale server
 powershell -ExecutionPolicy Bypass -File dev-scripts\status.ps1                            # what's running (plus MySQL/Kafka)
 powershell -ExecutionPolicy Bypass -File dev-scripts\stop-all.ps1                          # stop everything
+powershell -ExecutionPolicy Bypass -File dev-scripts\smoke.ps1                            # is the whole stack actually working? (exit 1 on any failure)
 ```
 
 Each service runs `mvnw spring-boot:run` hidden in the background with Java 23 (`-JavaHome` to override), logging to `dev.log` / `dev.err.log` in its own repo folder. A service already listening on its port is left alone unless `-Restart` is passed.
+
+`smoke.ps1` checks that all five services listen, the catalog answers directly and through this gateway, the storefront and FAQ are served, an anonymous caller is refused on a protected endpoint, and - when the service key is available (`-ServiceKey`, `INTERNAL_SERVICE_API_KEY`, or OrderService\.env) - that the health board is green and a cash-on-delivery order can be placed and cancelled with the stock restored. The order check leaves one cancelled order for the throwaway phone number `9000000999` in the dev database; pass `-SkipOrder` to avoid that. The key is only sent as a request header, never printed.
 
 ## Configuration
 
