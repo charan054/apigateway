@@ -36,11 +36,16 @@ powershell -ExecutionPolicy Bypass -File dev-scripts\start-all.ps1 -Only OrderSe
 powershell -ExecutionPolicy Bypass -File dev-scripts\status.ps1                            # what's running (plus MySQL/Kafka)
 powershell -ExecutionPolicy Bypass -File dev-scripts\stop-all.ps1                          # stop everything
 powershell -ExecutionPolicy Bypass -File dev-scripts\smoke.ps1                            # is the whole stack actually working? (exit 1 on any failure)
+powershell -ExecutionPolicy Bypass -File dev-scripts\backup-db.ps1                         # snapshot the dev database before anything risky
+powershell -ExecutionPolicy Bypass -File dev-scripts\restore-db.ps1 -List                 # what snapshots exist
+powershell -ExecutionPolicy Bypass -File dev-scripts\restore-db.ps1 -Latest               # put the newest one back (stop the services first)
 ```
 
 Each service runs `mvnw spring-boot:run` hidden in the background with Java 23 (`-JavaHome` to override), logging to `dev.log` / `dev.err.log` in its own repo folder. A service already listening on its port is left alone unless `-Restart` is passed.
 
 `smoke.ps1` checks that all five services listen, the catalog answers directly and through this gateway, the storefront and FAQ are served, an anonymous caller is refused on a protected endpoint, and - when the service key is available (`-ServiceKey`, `INTERNAL_SERVICE_API_KEY`, or OrderService\.env) - that the health board is green and a cash-on-delivery order can be placed and cancelled with the stock restored. The order check leaves one cancelled order for the throwaway phone number `9000000999` in the dev database; pass `-SkipOrder` to avoid that. The key is only sent as a request header, never printed.
+
+`backup-db.ps1` dumps the shared MySQL schema (host, port, schema and user from OrderService's `application.properties`; password from `-Password`, `DB_PASSWORD` or `OrderService\.env`, handed to `mysqldump` through the environment, never printed) with `--single-transaction`, so the services can keep running. Files go to `<repos folder>\_db-backups\<schema>-yyyyMMdd-HHmmss.sql` - outside every repo, but they contain real customer data, so treat the folder accordingly. The newest `-Keep` (default 10) are kept. `restore-db.ps1` refuses while any service is running, takes a `-pre-restore` safety copy of what it is about to overwrite, and makes you type the schema name to confirm (`-Force` / `-NoSafetyBackup` skip those; `-TargetDatabase` restores into a different, existing schema to inspect a backup safely). `-Latest` never picks a safety copy; name one with `-File` to go back to it.
 
 ## Configuration
 
