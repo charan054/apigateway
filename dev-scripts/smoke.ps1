@@ -125,6 +125,19 @@ Test-Step "ProductService answers through the gateway (/product/all)" {
     Assert-Status (Get-Http "$Gateway/product/all") 200 "gateway /product/all"
 } | Out-Null
 
+Test-Step "Help / FAQ answers through the gateway (/faq)" {
+    Assert-Status (Get-Http "$Gateway/faq") 200 "gateway /faq"
+} | Out-Null
+
+Test-Step "Pincode check answers through the gateway (/pincodes/check)" {
+    Assert-Status (Get-Http "$Gateway/pincodes/check?pincode=411001") 200 "gateway /pincodes/check"
+} | Out-Null
+
+Test-Step "Gateway keeps protected endpoints protected (/giftcards, /admin/accounts)" {
+    Assert-Status (Get-Http "$Gateway/giftcards") 401 "gateway /giftcards without a key"
+    Assert-Status (Get-Http "$Gateway/admin/accounts") 401 "gateway /admin/accounts without a key"
+} | Out-Null
+
 # ---- 3. static pages and public endpoints ----
 Test-Step "Storefront page is served (/shop.html)" {
     Assert-Status (Get-Http "$Order/shop.html") 200 "/shop.html"

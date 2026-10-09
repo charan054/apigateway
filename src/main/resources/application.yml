@@ -34,6 +34,17 @@ spring:
               uri: ${order.service.url}
               predicates:
                 - Path=/wishlist/**
+            # Every other OrderService controller prefix (the storefront and admin dashboard features added since
+            # the first three routes above). Keep in sync with OrderService's @RequestMapping prefixes.
+            - id: order-other
+              uri: ${order.service.url}
+              predicates:
+                - Path=/addresses/**,/admin/**,/audit/**,/customer/**,/faq/**,/feedback/**,/giftcards/**,/gst/**,/loyalty/**,/ordernotes/**,/pincodes/**,/prefs/**,/questions/**,/referral/**,/savedcart/**,/storecredit/**,/subscriptions/**,/support/**,/waitlist/**
+            # Product images uploaded through ProductService are served from its /uploads directory.
+            - id: product-uploads
+              uri: ${product.service.url}
+              predicates:
+                - Path=/uploads/**
 
 server:
   port: 9000
