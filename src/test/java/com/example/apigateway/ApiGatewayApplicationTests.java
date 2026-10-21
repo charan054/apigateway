@@ -33,6 +33,7 @@ class ApiGatewayApplicationTests {
 
     private static final AtomicReference<String> LAST_RECEIVED_SERVICE_KEY = new AtomicReference<>();
     private static final HttpServer FAKE_PRODUCT_SERVICE = startFakeProductService();
+    private static final HttpServer FAKE_ORDER_SERVICE = startFakeOrderService();
 
     @Autowired
     private MockMvc mockMvc;
@@ -56,14 +57,33 @@ class ApiGatewayApplicationTests {
         }
     }
 
+    private static HttpServer startFakeOrderService() {
+        try {
+            HttpServer server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
+            server.createContext("/", exchange -> {
+                byte[] body = ("order:" + exchange.getRequestURI().getPath()).getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(200, body.length);
+                try (OutputStream os = exchange.getResponseBody()) {
+                    os.write(body);
+                }
+            });
+            server.start();
+            return server;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
     @AfterAll
     static void stopFakeProductService() {
         FAKE_PRODUCT_SERVICE.stop(0);
+        FAKE_ORDER_SERVICE.stop(0);
     }
 
     @DynamicPropertySource
     static void overrideProductServiceUrl(DynamicPropertyRegistry registry) {
         registry.add("product.service.url", () -> "http://localhost:" + FAKE_PRODUCT_SERVICE.getAddress().getPort());
+        registry.add("order.service.url", () -> "http://localhost:" + FAKE_ORDER_SERVICE.getAddress().getPort());
     }
 
     @Test
@@ -83,5 +103,16 @@ class ApiGatewayApplicationTests {
     @Test
     void aPathThatMatchesNoRouteReturns404() throws Exception {
         mockMvc.perform(get("/unknown/path")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void routesTheRestOfOrderServiceSurfaceNotJustCart() throws Exception {
+        for (String path : new String[]{"/customer/session", "/admin/config", "/loyalty/byphno", "/addresses/byphno",
+                "/pincodes/check", "/giftcards/redeem", "/subscriptions/mine", "/support/tickets/mine", "/faq",
+                "/track/abc", "/p/1", "/review-photos/x.jpg", "/shop.html", "/js/shop.js"}) {
+            mockMvc.perform(get(path))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("order:" + path));
+        }
     }
 }
