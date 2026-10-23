@@ -35,6 +35,17 @@ spring:
               predicates:
                 - Path=/wishlist/**
 
+            # Everything else OrderService serves (storefront self-service, admin console, shared links). Without these
+            # the gateway answered 404 for them even though the service itself handles them.
+            - id: order-other
+              uri: ${order.service.url}
+              predicates:
+                - Path=/customer/**,/admin/**,/addresses/**,/loyalty/**,/pincodes/**,/giftcards/**,/subscriptions/**,/support/**,/bundles/**,/quantitybreaks/**,/waitlist/**,/searchwatch/**,/referral/**,/questions/**,/pricematch/**,/feedback/**,/prefs/**,/savedcart/**,/storecredit/**,/faq/**,/ordernotes/**,/refundfailures/**,/audit/**,/gst/**,/track/**,/p/**,/review-photos/**,/cart.html,/shop.html,/wishlist.html,/css/**,/js/**
+            - id: product-uploads
+              uri: ${product.service.url}
+              predicates:
+                - Path=/uploads/**
+
 server:
   port: 9000
 
