@@ -39,6 +39,12 @@
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-gateway-server-webmvc</artifactId>
         </dependency>
+        <!-- The proxy uses Apache HttpClient 5 instead of the JDK's built-in client, which intermittently threw a NullPointerException
+             inside java.net.http (Http1Exchange.bodySubscriber is null) when many requests were forwarded in quick succession. -->
+        <dependency>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
