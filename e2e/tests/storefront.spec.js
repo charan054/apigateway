@@ -22,7 +22,7 @@ test("the storefront lists a product and a typo in the search still finds it", a
   const consoleErrors = [];
   page.on("pageerror", (e) => consoleErrors.push(e.message));
 
-  const response = await page.request.get(`${STOREFRONT}/cart/search?name=shampo`);
+  const response = await page.request.get(`${STOREFRONT}/cart/search?name=shampoe`);
   expect(response.ok()).toBeTruthy();
   expect(response.headers()["x-search-corrected"]).toBe("true");
   const found = await response.json();

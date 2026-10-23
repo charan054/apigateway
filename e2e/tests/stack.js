@@ -11,7 +11,7 @@ const INTERNAL_KEY = process.env.INTERNAL_SERVICE_API_KEY || "change-this-intern
 // A unique-per-run phone number and Aadhar so reruns against the same database never collide.
 function freshIdentity() {
   const n = String(Date.now()).slice(-8);
-  return { phone: "9" + n + "0".repeat(1) + String(Math.floor(Math.random() * 10)), aadhar: "5" + n + String(Math.floor(Math.random() * 1000)).padStart(3, "0") };
+  return { phone: "9" + n + String(Math.floor(Math.random() * 10)), aadhar: "5" + n + String(Math.floor(Math.random() * 1000)).padStart(3, "0") };
 }
 
 // DEV_LOG_CODES=true makes the services write a code to their log when the email cannot be sent (CI has no mail server).
