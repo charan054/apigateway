@@ -1,0 +1,158 @@
+# The whole shop in containers: MySQL + Bankapplication + PhonepayService + ProductService + OrderService + ApiGateway.
+#
+#   cp .env.example .env        # then change the passwords/keys
+#   docker compose up --build   # first build takes several minutes (five Maven builds)
+#
+# Expects the five repos side by side (D:\charan\Bankapplication, ...\ApiGateway, ...), like dev-scripts/start-all.ps1 does.
+# Same ports as running them by hand (8080-8083 and the gateway on 9000); MySQL is on 3307 so it never clashes with a MySQL
+# already installed on the machine. Kafka is not part of the stack (the services run without it, as they do locally).
+
+# One Dockerfile for all five Spring Boot services: build with the project's own Maven wrapper, run the jar.
+x-java-service-dockerfile: &java-service-dockerfile |
+  FROM amazoncorretto:23 AS build
+  # the Maven wrapper unpacks the Maven download with tar, which the slim Corretto image does not have
+  RUN yum install -y tar gzip && yum clean all
+  WORKDIR /src
+  COPY . .
+  RUN chmod +x mvnw && ./mvnw -B -ntp -q -DskipTests package && cp target/*.jar /app.jar
+  FROM amazoncorretto:23
+  COPY --from=build /app.jar /app.jar
+  WORKDIR /app
+  ENTRYPOINT ["java", "-jar", "/app.jar"]
+
+x-service-defaults: &service-defaults
+  restart: unless-stopped
+  depends_on:
+    mysql:
+      condition: service_healthy
+
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: charan
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  bank:
+    <<: *service-defaults
+    build:
+      context: ../Bankapplication
+      dockerfile_inline: *java-service-dockerfile
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/charan
+      DB_PASSWORD: ${DB_PASSWORD}
+      ADMIN_API_KEY: ${ADMIN_API_KEY}
+      SERVICE_API_KEY: ${SERVICE_API_KEY}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      SIGNUP_LOG_CODES: ${DEV_LOG_CODES:-false}
+      WITHDRAW_OTP_LOG_CODES: ${DEV_LOG_CODES:-false}
+    ports:
+      - "8080:8080"
+    healthcheck: &port-check
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/$${PORT:-8080}'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+  phonepe:
+    <<: *service-defaults
+    build:
+      context: ../PhonepayService
+      dockerfile_inline: *java-service-dockerfile
+    environment:
+      PORT: "8081"
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/charan
+      DB_PASSWORD: ${DB_PASSWORD}
+      SERVICE_API_KEY: ${SERVICE_API_KEY}
+      INTERNAL_SERVICE_API_KEY: ${INTERNAL_SERVICE_API_KEY}
+      BANK_SERVICE_URL: http://bank:8080
+    depends_on:
+      mysql:
+        condition: service_healthy
+      bank:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+    healthcheck: *port-check
+
+  product:
+    <<: *service-defaults
+    build:
+      context: ../ProductService
+      dockerfile_inline: *java-service-dockerfile
+    environment:
+      PORT: "8082"
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/charan
+      DB_PASSWORD: ${DB_PASSWORD}
+      INTERNAL_SERVICE_API_KEY: ${INTERNAL_SERVICE_API_KEY}
+      APP_UPLOAD_DIR: /app/uploads
+    volumes:
+      - product-uploads:/app/uploads
+    ports:
+      - "8082:8082"
+    healthcheck: *port-check
+
+  order:
+    <<: *service-defaults
+    build:
+      context: ../OrderService
+      dockerfile_inline: *java-service-dockerfile
+    environment:
+      PORT: "8083"
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/charan
+      DB_PASSWORD: ${DB_PASSWORD}
+      INTERNAL_SERVICE_API_KEY: ${INTERNAL_SERVICE_API_KEY}
+      PHONEPE_SERVICE_URL: http://phonepe:8081
+      PRODUCT_SERVICE_URL: http://product:8082
+      HEALTH_TARGETS: Bankapplication=http://bank:8080,PhonepayService=http://phonepe:8081,ProductService=http://product:8082,ApiGateway=http://gateway:9000
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      CUSTOMER_LOGIN_LOG_CODES: ${DEV_LOG_CODES:-false}
+      APP_REVIEW_PHOTO_DIR: /app/review-photos
+    volumes:
+      - review-photos:/app/review-photos
+    depends_on:
+      mysql:
+        condition: service_healthy
+      product:
+        condition: service_healthy
+      phonepe:
+        condition: service_healthy
+    ports:
+      - "8083:8083"
+    healthcheck: *port-check
+
+  gateway:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile_inline: *java-service-dockerfile
+    environment:
+      PORT: "9000"
+      BANK_SERVICE_URL: http://bank:8080
+      PHONEPE_SERVICE_URL: http://phonepe:8081
+      PRODUCT_SERVICE_URL: http://product:8082
+      ORDER_SERVICE_URL: http://order:8083
+    depends_on:
+      order:
+        condition: service_healthy
+    ports:
+      - "9000:9000"
+    healthcheck: *port-check
+
+volumes:
+  mysql-data:
+  product-uploads:
+  review-photos:

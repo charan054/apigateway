@@ -59,3 +59,17 @@ Each downstream address can be overridden with an environment variable instead o
 ## Actuator
 
 `application.yml` lists `health,info,gateway` under `management.endpoints.web.exposure.include`, but only `/actuator/health` and `/actuator/info` are actually live on the WebMVC-flavored gateway (`spring-cloud-starter-gateway-server-webmvc`) as currently wired up - `/actuator/gateway` 404s. Getting the routes endpoint working would need investigating why it isn't auto-registering (possibly a missing dependency or property for this WebMVC variant, as opposed to the reactive `spring-cloud-starter-gateway`).
+
+## Whole stack in Docker
+
+`docker-compose.yml` builds and runs MySQL and all five services (the sibling repos must sit next to this one):
+
+```bash
+cp .env.example .env     # then change the passwords and keys
+docker compose up --build
+```
+
+Pages: bank portal http://localhost:8080/bankuser.html, PhonePe http://localhost:8081/phonepe.html, product dashboard
+http://localhost:8082/product.html, storefront http://localhost:8083/shop.html, everything through the gateway on
+http://localhost:9000. MySQL is published on port 3307 so it never clashes with one installed on the machine. The `Stack`
+GitHub workflow builds and starts this same compose file and checks the pages answer.
