@@ -10,6 +10,8 @@
 # One Dockerfile for all five Spring Boot services: build with the project's own Maven wrapper, run the jar.
 x-java-service-dockerfile: &java-service-dockerfile |
   FROM amazoncorretto:23 AS build
+  # the Maven wrapper unpacks the Maven download with tar, which the slim Corretto image does not have
+  RUN yum install -y tar gzip && yum clean all
   WORKDIR /src
   COPY . .
   RUN chmod +x mvnw && ./mvnw -B -ntp -q -DskipTests package && cp target/*.jar /app.jar
