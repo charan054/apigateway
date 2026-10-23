@@ -68,7 +68,7 @@ jobs:
           check http://localhost:9000/faq
           check http://localhost:9000/product/all
           exit $fail
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "20"
       - name: Install the browser tests
