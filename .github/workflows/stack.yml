@@ -1,0 +1,75 @@
+name: Stack
+
+# Builds all five services into containers with docker-compose.yml, starts them with MySQL and checks that every page answers -
+# the one test that exercises the whole shop together. Slower than the unit tests (five Maven builds), so it only runs when the
+# compose file or this workflow changes, on a manual run, and once a week.
+on:
+  pull_request:
+    paths:
+      - docker-compose.yml
+      - .env.example
+      - .github/workflows/stack.yml
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stack-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      # The compose file builds ../Bankapplication etc., so the five repos are checked out side by side.
+      - uses: actions/checkout@v7
+        with:
+          path: ApiGateway
+      - uses: actions/checkout@v7
+        with:
+          repository: charan054/Bankapplication
+          path: Bankapplication
+      - uses: actions/checkout@v7
+        with:
+          repository: charan054/PhonepayService
+          path: PhonepayService
+      - uses: actions/checkout@v7
+        with:
+          repository: charan054/ProductService
+          path: ProductService
+      - uses: actions/checkout@v7
+        with:
+          repository: charan054/OrderService
+          path: OrderService
+      - name: Build and start the stack
+        working-directory: ApiGateway
+        run: |
+          cp .env.example .env
+          docker compose up --build --detach --wait --wait-timeout 600
+      - name: Every page answers
+        run: |
+          fail=0
+          check() {
+            code=$(curl -s -o /dev/null -w '%{http_code}' "$1")
+            if [ "$code" = "200" ]; then echo "ok   $1"; else echo "FAIL $1 -> $code"; fail=1; fi
+          }
+          check http://localhost:8080/bankuser.html
+          check http://localhost:8081/phonepe.html
+          check http://localhost:8082/product.html
+          check http://localhost:8083/shop.html
+          check http://localhost:9000/shop.html
+          check http://localhost:9000/faq
+          check http://localhost:9000/product/all
+          exit $fail
+      - name: Show service logs when something failed
+        if: failure()
+        working-directory: ApiGateway
+        run: docker compose logs --no-color --tail 80
+      - name: Stop the stack
+        if: always()
+        working-directory: ApiGateway
+        run: docker compose down --volumes
