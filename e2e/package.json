@@ -1,0 +1,12 @@
+{
+  "name": "charan-shop-e2e",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Browser tests of the bank portal, storefront and admin dashboard against the Docker Compose stack",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.49.1"
+  }
+}
